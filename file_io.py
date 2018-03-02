@@ -2,6 +2,7 @@ import glob
 import csv
 import json
 
+
 def collect_csv_filenames(dir):
     """Collect all the *.csv files located in the test_data folder
 
@@ -12,6 +13,7 @@ def collect_csv_filenames(dir):
         print("No files found in specified directory.")
     return filenames_list
 
+
 def read_csv(filename):
     """Read csv file and separate time and voltage into respective lists
 
@@ -19,8 +21,8 @@ def read_csv(filename):
     :return:
     """
     csvfile = open(filename, "r")
-    time = [ ]
-    voltage = [ ]
+    time = []
+    voltage = []
     temp = csv.reader(csvfile, delimiter=",")
     for row in temp:
         time.append(row[0])
@@ -28,17 +30,17 @@ def read_csv(filename):
 
     return time, voltage
 
-def write_json(filename, info, type = 'json'):
-    """Write
 
-    :param filename:
-    :param type:
+def write_json(filename, info):
+    """Write data to .json file
+
+    :param filename: Output filename
+    :param info: Dictionary containing data to write
     :return:
     """
-    json_filename = filename.replace('.csv','.json')
+    json_filename = filename.replace('.csv', '.json')
     json_file = open(json_filename, "w")
     json.dump(info, json_file)
-    #json_file.write(info)
     json_file.close
 
     return

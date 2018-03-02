@@ -10,3 +10,6 @@ All .py scripts are written by Enoch Chang (GitHub: enoch-chang) except for **pe
 * **test_hrm_class.py** includes unit testing associated to functions found in process_ecg_data.py
 * **main.py** is the executable file to process the ECG data found in /test_data
 * **peakdetect.py** identifies peaks in a waveform based on a specified tolerance (delta)
+
+##Travis CI Status
+[![Build Status](https://travis-ci.org/enoch-chang/bme590hrm.svg?branch=master)](https://travis-ci.org/enoch-chang/bme590hrm)

@@ -12,17 +12,26 @@ import logging
 
 class HeartRateMonitor:
 
-    def __init__(self, time, voltage, voltage_ref):
+    def __init__(self, time, voltage, voltage_ref, time_unit="sec", filename=""):
         """Initializes instance of HeartRateMonitor based on file input and sets up logging
 
         :param time:
         :param voltage:
         :param voltage_ref:
+        :param time_unit: users can input unit for timescale, if none specified, unit is assumed to be seconds
         """
-        self.time = time
-        self.voltage = voltage
-        self.voltage_ref = voltage_ref
+        self.time_input = time
+        self.time = []
+        self.voltage_input = voltage
+        self.voltage = []
+        self.voltage_ref = []
+        self.filename = filename
+
+        for k in voltage_ref:
+            self.voltage_ref.append(float(k))
+
         self.max_corr = []
+        self.time_unit = time_unit
 
         try:
             import logging
@@ -35,11 +44,54 @@ class HeartRateMonitor:
                             datefmt='%m/%d/%Y %I:%M:%S %p',
                             level=logging.DEBUG)
 
-    def check_input(self):
+
+
+        logging.info("%s%s", "Opened ", self.filename)
+
+        self.process_input()
+
+    def is_float(self, input):
+        """ Checks if entry is a numerical value
+
+        :param input: from raw data
+        :return: boolean
+        """
+        try:
+            float(input)
+            return True
+        except ValueError:
+            return False
+
+    def process_input(self):
         """Checks that the input is the right type and that the time and voltage vectors are of equal length
 
         :return:
         """
+
+        for idx, i in enumerate(self.time_input):
+            if self.is_float(i):
+                if self.time_unit == "min":
+                    self.time.append(floar(i) * 60)
+                else:
+                    self.time.append(float(i))
+            else:
+                if self.is_float(self.time_input[idx-1]) and self.is_float(self.time_input[idx+1]):
+                    fill_in = (float(self.time_input[idx-1]) + float(self.time_input[idx+1]))/2
+                else:
+                    fill_in = self.time[len(self.time) - 1]
+                self.time.append(fill_in)
+                logging.warning("Time gap detected. Interpolation completed.")
+        for idx, j in enumerate(self.voltage_input):
+            if self.is_float(j):
+                self.voltage.append(float(j))
+            else:
+                if self.is_float(self.voltage_input[idx-1]) and self.is_float(self.voltage_input[idx+1]):
+                    fill_in = (float(self.voltage_input[idx-1]) + float(self.voltage_input[idx+1]))/2
+                else:
+                    fill_in = self.voltage[len(self.voltage) - 1]
+                self.voltage.append(fill_in)
+                logging.warning("Bad data in voltage detected. Interpolation completed.")
+
         try:
             if numpy.isreal(self.time) is False:
                 raise ValueError
@@ -59,7 +111,8 @@ class HeartRateMonitor:
             logging.error("You must have the same number of voltage and time entries.")
             raise InputError
 
-        return
+        return None
+
 
     def mean_hr_bpm(self):
         """Calculates the mean heart rate in beats per minute.
@@ -89,6 +142,9 @@ class HeartRateMonitor:
 
         logging.info("Maximum and minimum voltages successfully identified.")
 
+        if abs(voltage_extremes[0]) > 300 or abs(voltage_extremes[1]) > 300:
+            logging.warning("Warning: Voltage is out of ECG range (300V)")
+
         return voltage_extremes
 
     def duration(self):
@@ -114,13 +170,9 @@ class HeartRateMonitor:
 
         norm_voltage = list(self.voltage - numpy.mean(self.voltage))
         norm_voltage_ref = list(self.voltage_ref - numpy.mean(self.voltage_ref))
-        ref_index = norm_voltage.index(max(norm_voltage))
-        # corr_voltage = numpy.convolve(norm_voltage, norm_voltage[ref_index-100:ref_index+100], mode='same')
         corr_voltage = numpy.convolve(norm_voltage, norm_voltage_ref[144:504], mode = 'same')
 
-        min_corr = []
         voltage_delta = numpy.sqrt(numpy.mean(corr_voltage**2))*2.5
-        print(voltage_delta)
         [self.max_corr, min_corr] = peakdet(corr_voltage, voltage_delta, self.time)
         max_corr_voltage = []
         for i in self.max_corr:
@@ -157,5 +209,7 @@ class HeartRateMonitor:
                     'Number of Beats: ': self.num_beats(),
                     'Times when beats occurred: ': self.beats()
                     }
+
+        logging.info("%s%s", "Completed ", self.filename)
 
         return hrm_info

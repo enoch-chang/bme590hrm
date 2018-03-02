@@ -71,6 +71,11 @@ class HeartRateMonitor:
 
         :return: None
         """
+
+        if self.time_input == [] or self.voltage_input == []:
+            logging.warning("Time and voltage inputs are empty.")
+            return
+
         try:
             float(self.time_input[0])
             for idx, i in enumerate(self.time_input):
@@ -131,7 +136,7 @@ class HeartRateMonitor:
         if len(self.voltage) != len(self.time):
             logging.error("You must have the same number of voltage and time "
                           "entries.")
-            raise InputError
+            return False
 
         return True
 
@@ -162,7 +167,7 @@ class HeartRateMonitor:
     def voltage_extremes(self):
         """Finds the max and min voltage in the data set
 
-        :return voltage_extremes: tuple containing max and min voltage
+        :return voltage_extremes: list containing max and min voltage
         """
 
         voltage_extremes = []

@@ -13,7 +13,7 @@ import logging
 class HeartRateMonitor:
 
     def __init__(self, time, voltage, voltage_ref):
-        """Initializes instance of HeartRateMonitor based on file input
+        """Initializes instance of HeartRateMonitor based on file input and sets up logging
 
         :param time:
         :param voltage:
@@ -23,28 +23,6 @@ class HeartRateMonitor:
         self.voltage = voltage
         self.voltage_ref = voltage_ref
         self.max_corr = []
-
-        try:
-            self.check_input(self.time)
-        except ValueError:
-            logging.error("There is a ValueError in the list of times. The numbers must be real.")
-            print("Time input must be a list containing only of real numbers.")
-            quit()
-        except TypeError:
-            logging.error("There is a TypeError in the list of times. The numbers must be of a numerical type.")
-            print("Time input must be a list containing numerical type entries.")
-            quit()
-
-        try:
-            self.check_input(self.voltage)
-        except ValueError:
-            logging.error("There is a ValueError in the list of voltages. The numbers must be real.")
-            print("Voltage input must be a list containing only of real numbers.")
-            quit()
-        except TypeError:
-            logging.error("There is a TypeError in the list of voltages. The numbers must be of a numerical type.")
-            print("Voltage input must be a list containing numerical type entries.")
-            quit()
 
         try:
             import logging
@@ -57,6 +35,32 @@ class HeartRateMonitor:
                             datefmt='%m/%d/%Y %I:%M:%S %p',
                             level=logging.DEBUG)
 
+    def check_input(self):
+        """Checks that the input is the right type and that the time and voltage vectors are of equal length
+
+        :return:
+        """
+        try:
+            if numpy.isreal(self.time) is False:
+                raise ValueError
+        except ValueError:
+            logging.error("There is a ValueError in the list of times. The numbers must be real.")
+            print("Time input must be a list containing only of real numbers.")
+
+        try:
+            if numpy.isreal(self.voltage) is False:
+                raise ValueError
+        except ValueError:
+            logging.error("There is a ValueError in the list of voltages. The numbers must be real.")
+            print("Voltage input must be a list containing only of real numbers.")
+
+
+        if len(self.voltage) != len(self.time):
+            logging.error("You must have the same number of voltage and time entries.")
+            raise InputError
+
+        return
+
     def mean_hr_bpm(self):
         """Calculates the mean heart rate in beats per minute.
 
@@ -66,6 +70,10 @@ class HeartRateMonitor:
         mean_hr_bpm = self.num_beats()/duration_min
 
         logging.info("Mean heart rate successfully calculated.")
+        if mean_hr_bpm > 180:
+            logging.warning("Warning: Mean heart rate detected to be more than 180 bpm.")
+        if mean_hr_bpm < 40:
+            logging.warning("Warning: Mean heart rate detected to be less than 40 bpm.")
 
         return mean_hr_bpm
 
@@ -93,6 +101,9 @@ class HeartRateMonitor:
 
         logging.info("Duration successfully calculated.")
 
+        if duration < 5:
+            logging.info("Warning: Duration is less than 5 seconds. Calculation accuracy may be affected.")
+
         return duration
 
     def num_beats(self):
@@ -116,10 +127,6 @@ class HeartRateMonitor:
             max_corr_voltage.append(i[0])
         num_beats = len(max_corr_voltage)
 
-        print(corr_voltage)
-        plt.plot(corr_voltage)
-        plt.show()
-
         logging.info("Number of beats successfully counted.")
 
         return num_beats
@@ -137,3 +144,18 @@ class HeartRateMonitor:
         logging.info("Times corresponding to each heartbeat successfully identified.")
 
         return beats
+
+    def output(self):
+        """Summarizes calculated outputs from the functions of this class.
+
+        :return hrm_info: a dictionary containing all the object attributes
+        """
+
+        hrm_info = {'Mean Heart Rate: ': self.mean_hr_bpm(),
+                    'Voltage Extremes: ': self.voltage_extremes(),
+                    'Duration: ': self.duration(),
+                    'Number of Beats: ': self.num_beats(),
+                    'Times when beats occurred: ': self.beats()
+                    }
+
+        return hrm_info
